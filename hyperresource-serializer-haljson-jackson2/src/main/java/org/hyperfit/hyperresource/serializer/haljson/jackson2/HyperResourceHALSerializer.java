@@ -29,7 +29,11 @@ class HyperResourceHALSerializer extends BeanSerializerBase {
     }
 
     @Override
-    public void serialize(Object bean, JsonGenerator gen, SerializerProvider provider) throws IOException {
+    public void serialize(
+        Object bean,
+        JsonGenerator gen,
+        SerializerProvider provider
+    ) throws IOException {
         //This is stolen from https://github.com/FasterXML/jackson-databind/blob/master/src/main/java/com/fasterxml/jackson/databind/ser/BeanSerializer.java
         if (_objectIdWriter != null) {
             gen.setCurrentValue(bean); // [databind#631]
@@ -53,9 +57,13 @@ class HyperResourceHALSerializer extends BeanSerializerBase {
 
 
 
-    private void serializeControls(Object bean, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    private void serializeControls(
+        Object bean,
+        JsonGenerator jgen,
+        SerializerProvider provider
+    ) throws IOException {
 
-        writeLinks(bean, jgen);
+        writeLinks(bean, jgen, provider.getActiveView());
 
         writeEmbeddedResources(bean, jgen, provider);
 
@@ -63,7 +71,8 @@ class HyperResourceHALSerializer extends BeanSerializerBase {
 
     private void writeLinks(
         Object bean,
-        JsonGenerator jgen
+        JsonGenerator jgen,
+        Class<?> activeView
     ) {
 
         HashSet<String> forceArrayRels = new HashSet<>();
@@ -72,6 +81,10 @@ class HyperResourceHALSerializer extends BeanSerializerBase {
         Map<String, List<Link>> linksByRel = Arrays.stream(_props)
             .filter(
                 p -> Link.class.isAssignableFrom(p.getPropertyType()) || Link[].class.isAssignableFrom(p.getPropertyType())
+            )
+            .filter(
+                //limit to the current view if there is one
+                p -> activeView == null || (p.getViews() != null && Arrays.asList(p.getViews()).contains(activeView))
             )
             .map(p -> {
                 try {
@@ -170,6 +183,10 @@ class HyperResourceHALSerializer extends BeanSerializerBase {
         Map<String, List<HyperResource>> resourcesByRel = Arrays.stream(_props)
             .filter(
                 p -> HyperResource.class.isAssignableFrom(p.getPropertyType()) || HyperResource[].class.isAssignableFrom(p.getPropertyType())
+            )
+            .filter(
+                //limit to the current view if thre is one
+                p -> provider.getActiveView() == null || (p.getViews() != null && Arrays.asList(p.getViews()).contains(provider.getActiveView()))
             )
             .map(p -> {
                 Rel rel = p.getAnnotation(Rel.class);

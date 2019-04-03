@@ -1091,4 +1091,163 @@ public class HALJSONJacksonSerializerTest {
 
     }
 
+
+
+    @Test
+    public void testWriteResourceWithViewIgnoringCertainLinks() throws IOException, JSONException {
+        class ViewX {
+
+        }
+
+        class TypedResource implements HyperResource {
+
+            public Link getLinkA(){
+                return new Link(
+                    "bb:a",
+                    "https://example.com/a"
+                );
+            }
+
+            @JsonView(ViewX.class)
+            public Link getLinkB(){
+                return new Link(
+                    "bb:b",
+                    "https://example.com/b"
+                );
+            }
+        }
+
+        HyperResource resource = new TypedResource();
+
+        writer.write(resource, null, outputStream);
+
+        JSONAssert.assertEquals(
+            "{_links: { 'bb:a' : {href: 'https://example.com/a'},  'bb:b' : {href: 'https://example.com/b'} }}",
+            outputStream.toString(),
+            NON_EXTENSIBLE
+        );
+
+        JSONAssert.assertEquals(
+            "{_links: { 'bb:a' : {href: 'https://example.com/a'},  'bb:b' : {href: 'https://example.com/b'} }}",
+            writer.writeToString(resource, null),
+            NON_EXTENSIBLE
+        );
+
+
+        {
+            String actual = writer.writeToString(
+                resource,
+                null,
+                null
+            );
+            JSONAssert.assertEquals(
+                "{_links: { 'bb:a' : {href: 'https://example.com/a'},  'bb:b' : {href: 'https://example.com/b'} }}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+
+
+        {
+            String actual = writer.writeToString(
+                resource,
+                null,
+                ViewX.class
+            );
+
+            JSONAssert.assertEquals(
+                "bb:a must be excluded since it is not annotated with the view",
+                "{_links: { 'bb:b' : {href: 'https://example.com/b'} }}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+    }
+
+
+
+    @Test
+    public void testWriteResourceWithViewIgnoringCertainSubresrouces() throws IOException, JSONException {
+        class ViewX {
+
+        }
+
+
+        @JsonView(ViewX.class)
+        class Subresource implements HyperResource {
+            private final String foo;
+
+            Subresource(
+                String foo
+            ){
+
+                this.foo = foo;
+            }
+
+            public String getFoo() {
+                return foo;
+            }
+        }
+
+        class TypedResource implements HyperResource {
+
+            @Rel("bb:a")
+            public Subresource getA(){
+                return new Subresource("a");
+            }
+
+            @Rel("bb:b")
+            @JsonView(ViewX.class)
+            public Subresource getB(){
+                return new Subresource("b");
+            }
+        }
+
+        HyperResource resource = new TypedResource();
+
+        writer.write(resource, null, outputStream);
+
+        JSONAssert.assertEquals(
+            "{_embedded: { 'bb:a' : {foo:'a'},  'bb:b' : {foo:'b'} }}",
+            outputStream.toString(),
+            NON_EXTENSIBLE
+        );
+
+        JSONAssert.assertEquals(
+            "{_embedded: { 'bb:a' : {foo:'a'},  'bb:b' : {foo:'b'} }}",
+            writer.writeToString(resource, null),
+            NON_EXTENSIBLE
+        );
+
+
+        {
+            String actual = writer.writeToString(
+                resource,
+                null,
+                null
+            );
+            JSONAssert.assertEquals(
+                "{_embedded: { 'bb:a' : {foo:'a'},  'bb:b' : {foo:'b'} }}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+
+
+        {
+            String actual = writer.writeToString(
+                resource,
+                null,
+                ViewX.class
+            );
+
+            JSONAssert.assertEquals(
+                "bb:a must be excluded since it is not annotated with the view",
+                "{_embedded: { 'bb:b' : {foo:'b'} }}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+    }
+
 }
