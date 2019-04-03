@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Scanner;
 
 
+import com.fasterxml.jackson.annotation.JsonView;
 import org.hyperfit.hyperresource.controls.TemplatedAction;
 import org.hamcrest.Matchers;
 import org.hyperfit.hyperresource.HyperResource;
@@ -551,7 +552,7 @@ public class HALJSONJacksonSerializerTest {
 
 
     @Test
-    public void testWriteResourceWithSubresouceArray() throws IOException, JSONException {
+    public void testWriteResourceWithSubresourceArray() throws IOException, JSONException {
         HyperResource resource = new HyperResource() {
 
             @SuppressWarnings("unused")
@@ -587,7 +588,7 @@ public class HALJSONJacksonSerializerTest {
     }
 
     @Test
-    public void testWriteResourceWithEmptySubresouceArray() throws IOException, JSONException {
+    public void testWriteResourceWithEmptySubresourceArray() throws IOException, JSONException {
         //By default we exclude empty sub resource arrays
         HyperResource resource = new HyperResource() {
 
@@ -614,7 +615,7 @@ public class HALJSONJacksonSerializerTest {
     }
 
     @Test
-    public void testWriteResourceWithNullSubresouceArray() throws IOException, JSONException {
+    public void testWriteResourceWithNullSubresourceArray() throws IOException, JSONException {
         //nulls are ignored in general..so this is no different than an empty aray
         HyperResource resource = new HyperResource() {
 
@@ -889,6 +890,205 @@ public class HALJSONJacksonSerializerTest {
             writer.writeToString(resource, null),
             NON_EXTENSIBLE
         );
+    }
+
+
+    @Test
+    public void testWriteResourceWithView() throws IOException, JSONException {
+        class ViewX {
+
+        }
+
+        class ViewY {
+
+        }
+
+        @JsonView(ViewY.class)
+        class TypedResource implements HyperResource {
+
+            @JsonView(ViewX.class)
+            private final String foo;
+
+            private final String bar;
+
+            @SuppressWarnings("unused")
+            public String getFoo() {
+                return foo;
+            }
+
+            @SuppressWarnings("unused")
+            public String getBar() {
+                return bar;
+            }
+
+            private TypedResource(
+                String foo,
+                String bar
+            ) {
+                this.foo = foo;
+                this.bar = bar;
+            }
+        }
+
+        HyperResource resource = new TypedResource("foo1", "bar1");
+
+        writer.write(resource, null, outputStream);
+
+        JSONAssert.assertEquals(
+            "{foo: 'foo1', bar: 'bar1'}",
+            outputStream.toString(),
+            NON_EXTENSIBLE
+        );
+
+        JSONAssert.assertEquals(
+            "{foo: 'foo1', bar: 'bar1'}",
+            writer.writeToString(resource, null),
+            NON_EXTENSIBLE
+        );
+
+
+        {
+            String actual = writer.writeToString(
+                resource,
+                null,
+                null
+            );
+            JSONAssert.assertEquals(
+                "{foo: 'foo1', bar: 'bar1'}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+
+
+        {
+            String actual = writer.writeToString(
+                resource,
+                null,
+                ViewX.class
+            );
+
+            JSONAssert.assertEquals(
+                "{foo: 'foo1'}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+
+
+
+        {
+            String actual = writer.writeToString(
+                resource,
+                null,
+                ViewY.class
+            );
+
+            JSONAssert.assertEquals(
+                "{bar: 'bar1'}",
+                actual,
+                NON_EXTENSIBLE
+            );
+
+        }
+
+
+    }
+
+
+
+    @Test
+    public void testWriteResourceWithViewAndEscapesNecessary() throws IOException, JSONException {
+        class ViewX {
+
+        }
+
+        @JsonView(ViewX.class)
+        class TypedResource implements HyperResource {
+
+            private final String foo;
+
+            @SuppressWarnings("unused")
+            public String getFoo() {
+                return foo;
+            }
+
+
+            private TypedResource(
+                String foo
+            ) {
+                this.foo = foo;
+            }
+        }
+
+        HyperResource resource = new TypedResource("<tag attr=\"stuff\">stuff</tag>");
+
+
+        outputStream = new ByteArrayOutputStream();
+        writer.write(
+            resource,
+            null,
+            outputStream
+        );
+
+        assertEquals(
+            "no view no escape",
+            "{\"foo\":\"<tag attr=\\\"stuff\\\">stuff</tag>\"}",
+            outputStream.toString()
+        );
+
+        JSONAssert.assertEquals(
+            "{foo: '<tag attr=\"stuff\">stuff</tag>'}",
+            outputStream.toString(),
+            NON_EXTENSIBLE
+        );
+
+
+        {
+
+            String actual = writer.writeToString(
+                resource,
+                null,
+                null
+            );
+
+            assertEquals(
+                "view even when null has escape",
+                "{\"foo\":\"<tag attr=\\\"stuff\\\">stuff<\\/tag>\"}",
+                actual
+            );
+
+            JSONAssert.assertEquals(
+                "{foo: '<tag attr=\"stuff\">stuff</tag>'}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+
+
+        {
+
+            String actual = writer.writeToString(
+                resource,
+                null,
+                ViewX.class
+            );
+
+
+            assertEquals(
+                "view even when present has escape",
+                "{\"foo\":\"<tag attr=\\\"stuff\\\">stuff<\\/tag>\"}",
+                actual
+            );
+
+
+            JSONAssert.assertEquals(
+                "{foo: '<tag attr=\"stuff\">stuff</tag>'}",
+                actual,
+                NON_EXTENSIBLE
+            );
+        }
+
     }
 
 }

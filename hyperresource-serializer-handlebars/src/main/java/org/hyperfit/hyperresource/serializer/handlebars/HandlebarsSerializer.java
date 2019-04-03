@@ -144,6 +144,26 @@ public class HandlebarsSerializer implements HyperResourceSerializer {
 
     }
 
+    /**
+     * Writes the HyperResource serialized form using handlebars templates for the given locale using the given perspective of viewing the resource as a string.
+     * The resourceView is ignored
+     * @param resource the resource to be serialized
+     * @param locale the locale to use while serializing
+     * @param resourceView the perspective for which the serializer views the resource. currently ignored
+     * @throws IOException when serialization can not take place
+     */
+    @Override
+    public String writeToString(
+        HyperResource resource,
+        Locale locale,
+        Class<?> resourceView
+    ) throws IOException {
+        return this.writeToString(
+            resource,
+            locale
+        );
+    }
+
     @Override
     public String writeToString(
         HyperResource resource,

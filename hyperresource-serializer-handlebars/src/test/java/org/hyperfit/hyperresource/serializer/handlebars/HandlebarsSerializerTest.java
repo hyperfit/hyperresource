@@ -495,4 +495,43 @@ public class HandlebarsSerializerTest {
 
     }
 
+    @Test
+    public void testWriteAsStringWithViewPassesThrough() throws IOException {
+
+        String fakeResult = TestUtils.uniqueString();
+        HyperResource fakeResource = new HyperResource() {};
+        Locale fakeLocale = Locale.CANADA;
+
+        subject = new HandlebarsSerializer(mockHandlebars, "whatever"){
+
+            @Override
+            public String writeToString(
+                HyperResource resource,
+                Locale locale
+            ) {
+                assertSame(
+                    fakeResource,
+                    resource
+                );
+
+                assertSame(
+                    fakeLocale,
+                    locale
+                );
+
+                return fakeResult;
+            }
+        };
+
+        assertEquals(
+            fakeResult,
+            subject.writeToString(
+                fakeResource,
+                fakeLocale,
+                HandlebarsSerializerTest.class
+            )
+        );
+
+    }
+
 }

@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.ser.impl.ObjectIdWriter;
 import com.fasterxml.jackson.databind.ser.std.BeanSerializerBase;
 
 /**
- * Serializes {@code HyperResouce} objects into HAL+JSON.
+ * Serializes {@code HyperResource} objects into HAL+JSON.
  *
  */
 class HyperResourceHALSerializer extends BeanSerializerBase {
@@ -262,6 +262,13 @@ class HyperResourceHALSerializer extends BeanSerializerBase {
 
     public HyperResourceHALSerializer(
         HyperResourceHALSerializer source,
+        Set<String> toIgnore
+    ) {
+        super(source, toIgnore);
+    }
+
+    public HyperResourceHALSerializer(
+        HyperResourceHALSerializer source,
         ObjectIdWriter objectIdWriter,
         Object filterId
     ) {
@@ -273,6 +280,13 @@ class HyperResourceHALSerializer extends BeanSerializerBase {
         ObjectIdWriter objectIdWriter
     ) {
         return new HyperResourceHALSerializer(this, objectIdWriter);
+    }
+
+    @Override
+    protected BeanSerializerBase withIgnorals(
+        Set<String> toIgnore
+    ) {
+        return new HyperResourceHALSerializer(this, toIgnore);
     }
 
     @Override
